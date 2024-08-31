@@ -1,6 +1,6 @@
 {
   "name": "react-us-map",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": " React component for displaying responsive U.S. maps with tooltips, fills, strokes and more.",
   "main": "dist/react-us-map.cjs.js",
   "files": [
@@ -17,14 +17,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kevinschaul/react-us-map.git"
+    "url": "git+https://github.com/tcornell05/react-us-map.git"
   },
   "author": "Kevin Schaul",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kevinschaul/react-us-map/issues"
+    "url": "https://github.com/tcornell05/react-us-map/issues"
   },
-  "homepage": "https://github.com/kevinschaul/react-us-map#readme",
+  "homepage": "https://github.com/tcornell05/react-us-map#readme",
   "dependencies": {
     "d3-geo": "^3.0.1",
     "d3-selection": "^3.0.0",
