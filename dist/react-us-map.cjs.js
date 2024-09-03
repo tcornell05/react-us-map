@@ -51392,7 +51392,6 @@ const mapLabelAdjustmentsByState = adjustments.reduce((p, v) => {
   return p;
 }, {});
 function slugify(s) {
-  // https://gist.github.com/mathewbyrne/1280286
   return s.toString().toLowerCase().replace(/\s+/g, '-') // Replace spaces with -
   .replace(/[^\w\-]+/g, '') // Remove all non-word chars
   .replace(/\-\-+/g, '-') // Replace multiple - with single -
@@ -51408,11 +51407,6 @@ function selectOrAppend(parent, selector, d3Element) {
   }
 }
 const nop = stateName => null;
-
-/**
- * React component that draws a responsive svg map of U.S. states, with
- * optional tooltips and styling applied
- */
 const USMap = props => {
   const {
     size,
@@ -51439,7 +51433,7 @@ const USMap = props => {
     textBackgroundDY,
     tooltipWidth,
     tooltipHTML,
-    onStateClick
+    onStateClick // Add the onStateClick prop here
   } = props;
   const isSkinny = size.width <= 700;
   const d3Chart = React$1.useRef(null);
@@ -51472,24 +51466,22 @@ const USMap = props => {
     const mouseout = (e, d) => {
       tooltip.style('opacity', 0).style('visibility', 'hidden');
       svg.selectAll(`.d3-state-${slugify(d)}`).style('fill', d => fill(d.properties.name)).style('stroke', d => stroke(d.properties.name)).style('stroke-width', d => strokeWidth(d.properties.name));
-      // TODO .lower() but only sometimes, depending on sort
-
       svg.selectAll(`.d3-state-offshore-${slugify(d)}`).style('fill', d => fill(d.state)).style('stroke', d => stroke(d.state)).style('stroke-width', d => strokeWidth(d.state));
     };
-    const click = (e, d) => {
-      onStateClick(d.properties ? d.properties.name : d.state);
+    const handleStateClick = (e, d) => {
+      if (onStateClick) {
+        onStateClick(d);
+      }
     };
     const projection = geoAlbersUsa().fitSize([width, height], stateGeoData);
     const path = geoPath().projection(projection);
     const g = svg.append('g').attr('class', 'map');
-    const states = g.append('g').attr('class', 'states').selectAll('.state').data(stateGeoData.features.sort((a, b) => {
-      return sort(a.properties.name, b.properties.name);
-    })).enter().append('path').attr('d', path).attr('class', d => `state d3-state-${slugify(d.properties.name)}`).attr('fill', d => fill(d.properties.name)).attr('stroke', d => stroke(d.properties.name)).attr('stroke-width', d => strokeWidth(d.properties.name)).raise();
+
+    // For main states
+    const states = g.append('g').attr('class', 'states').selectAll('.state').data(stateGeoData.features.sort((a, b) => sort(a.properties.name, b.properties.name))).enter().append('path').attr('d', path).attr('class', d => `state d3-state-${slugify(d.properties.name)}`).attr('fill', d => fill(d.properties.name)).attr('stroke', d => stroke(d.properties.name)).attr('stroke-width', d => strokeWidth(d.properties.name)).on('click', (e, d) => handleStateClick(e, d.properties.name)); // This should work
+
     if (tooltipHTML !== nop) {
       states.on('mouseover', (e, d) => mouseover(e, d.properties.name)).on('mousemove', (e, d) => mousemove(e, d.properties.name)).on('mouseout', (e, d) => mouseout(e, d.properties.name));
-    }
-    if (onStateClick !== nop) {
-      states.on('click', click);
     }
     if (overstroke !== nop) {
       g.append('g').attr('class', 'states-overstrokes').selectAll('.state-overstroke').data(stateGeoData.features.sort(sort)).enter().append('path').attr('d', path).attr('class', d => `state-overstroke d3-state-${slugify(d.properties.name)}`).attr('fill', 'none').attr('stroke', d => overstroke(d.properties.name)).attr('stroke-width', d => overstrokeWidth(d.properties.name)).raise();
@@ -51515,34 +51507,29 @@ const USMap = props => {
       const adjustment = mapLabelAdjustmentsByState[d.properties.name][isSkinny ? 'mobile_label_adj_y' : 'label_adj_y'];
       return path.centroid(d)[1] + adjustment;
     }).style('text-anchor', 'middle').style('font-size', fontSize).style('font-family', d => textFontFamily(d.properties.name)).style('font-weight', d => textFontWeight(d.properties.name)).style('paint-order', 'stroke').style('pointer-events', 'none').text(d => fullToPostal(d.properties.name));
-
-    // Don't apply fill or strokes to Hawaii since its label is not over the state
     stateLabels.filter(d => d.properties.name !== 'Hawaii').style('fill', d => textFill(d.properties.name)).style('stroke', d => textStroke(d.properties.name)).style('stroke-width', d => textStrokeWidth(d.properties.name));
     const statesOffshore = g.append('g').attr('class', 'states-offshore');
     const offshoreRightData = isSkinny ? offshoreData : offshoreData.filter(d => d.region === 'right');
     const offshoreTopData = isSkinny ? [] : offshoreData.filter(d => d.region === 'top');
     const statesOffshoreRight = statesOffshore.selectAll('.state-offshore-right').data(offshoreRightData).enter().append('g').attr('class', 'state-offshore state-offshore-right').attr('transform', (d, i) => `translate(${isSkinny ? width : width - 60}, ${(isSkinny ? 15 : height * 0.35) + i * (offshoreBoxWidth + 5)})`);
-    const statesOffshoreRightRect = statesOffshoreRight.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).style('fill', d => fill(d.state)).style('stroke', d => stroke(d.state)).style('stroke-width', d => strokeWidth(d.state));
+    const statesOffshoreRightRect = statesOffshoreRight.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).style('fill', d => fill(d.state)).style('stroke', d => stroke(d.state)).style('stroke-width', d => strokeWidth(d.state)).on('click', (e, d) => handleStateClick(e, d.state)); // Add click handler for offshore states
+
     if (tooltipHTML !== nop) {
       statesOffshoreRightRect.on('mouseover', (e, d) => mouseover(e, d.state)).on('mousemove', (e, d) => mousemove(e, d.state)).on('mouseout', (e, d) => mouseout(e, d.state));
-    }
-    if (onStateClick !== nop) {
-      statesOffshoreRightRect.on('click', click);
     }
     if (textBackgroundFill !== nop) {
       statesOffshoreRight.append('rect').attr('x', offshoreBoxWidth + 2).attr('y', d => offshoreBoxWidth - 2 - textBackgroundHeight(d.state) / 2 + textBackgroundDY(d.state)).attr('width', d => textBackgroundWidth(d.state)).attr('height', d => textBackgroundHeight(d.state)).style('fill', d => textBackgroundFill(d.state));
     }
     statesOffshoreRight.append('text').attr('x', offshoreBoxWidth + 4).attr('y', offshoreBoxWidth - 2).style('font-size', fontSize).style('font-family', d => textFontFamily(d.state)).style('font-weight', d => textFontWeight(d.state)).text(d => fullToPostal(d.state));
     const statesOffshoreTop = statesOffshore.selectAll('.state-offshore-top').data(offshoreTopData).enter().append('g').attr('class', 'state-offshore state-offshore-top').attr('transform', (d, i) => `translate(${width * 0.85}, ${height * 0.07 + i * (offshoreBoxWidth + 5)})`);
-    const statesOffshoreTopRect = statesOffshoreTop.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).attr('fill', d => fill(d.state)).attr('stroke', d => stroke(d.state)).attr('stroke-width', d => strokeWidth(d.state));
+    const statesOffshoreTopRect = statesOffshoreTop.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).attr('fill', d => fill(d.state)).attr('stroke', d => stroke(d.state)).attr('stroke-width', d => strokeWidth(d.state)).on('click', (e, d) => handleStateClick(e, d.state)); // Add click handler for offshore states
+
     if (tooltipHTML !== nop) {
       statesOffshoreTopRect.on('mouseover', (e, d) => mouseover(e, d.state)).on('mousemove', (e, d) => mousemove(e, d.state)).on('mouseout', (e, d) => mouseout(e, d.state));
     }
-    if (onStateClick !== nop) {
-      statesOffshoreTopRect.on('click', click);
-    }
     statesOffshoreTop.append('text').attr('x', offshoreBoxWidth + 4).attr('y', offshoreBoxWidth - 2).style('font-size', fontSize).style('font-family', d => textFontFamily(d.state)).style('font-weight', d => textFontWeight(d.state)).text(d => fullToPostal(d.state));
-  }, [d3Chart, size.width, sort, fill, stroke, strokeWidth, margins.left, margins.right, margins.top, margins.bottom, isSkinny, tooltipWidth, textFontSize, textFontFamily, textFontWeight, textFill, textStroke, offshoreData, tooltipHTML, fillHover, strokeHover, strokeWidthHover, textStrokeWidth, textFilter, onStateClick]);
+  }, [d3Chart, size.width, sort, fill, stroke, strokeWidth, margins.left, margins.right, margins.top, margins.bottom, isSkinny, tooltipWidth, textFontSize, textFontFamily, textFontWeight, textFill, textStroke, offshoreData, tooltipHTML, fillHover, strokeHover, strokeWidthHover, textStrokeWidth, textFilter, onStateClick // Add onStateClick to the dependency array
+  ]);
   return /*#__PURE__*/React__default$1["default"].createElement("div", null, /*#__PURE__*/React__default$1["default"].createElement("svg", {
     ref: d3Chart,
     width: '100%',
@@ -51550,118 +51537,30 @@ const USMap = props => {
   }));
 };
 USMap.propTypes = {
-  /**
-   * A function that returns a fill color for the state shape.
-   */
   fill: PropTypes.func,
-  /**
-   * A function that returns a fill color for the state shape when it is hovered
-   * over. Only applies if `tooltipHTML` is defined.
-   */
   fillHover: PropTypes.func,
-  /**
-   * A function that returns a stroke color for the state shape.
-   */
   stroke: PropTypes.func,
-  /**
-   * A function that returns a stroke color for the state shape when it is
-   * hovered over. Only applies if `tooltipHTML` is defined.
-   */
   strokeHover: PropTypes.func,
-  /**
-   * A function that returns a stroke width for the state shape.
-   */
   strokeWidth: PropTypes.func,
-  /**
-   * A function that returns a stroke width for the state shape when it is
-   * hovered over. Only applies if `tooltipHTML` is defined.
-   */
   strokeWidthHover: PropTypes.func,
-  /**
-   * A function that returns an additional stroke color for the state shape,
-   * which can be used to create a stroked casing effect.
-   */
   overstroke: PropTypes.func,
-  /**
-   * A function that returns an additional stroke width for the state shape,
-   * which can be used to create a stroked casing effect.
-   */
   overstrokeWidth: PropTypes.func,
-  /**
-   * A function that returns whether to show a text label for this state. Does
-   * not affect offshore state box labels, which are always shown.
-   */
   textFilter: PropTypes.func,
-  /**
-   * An array with two font size values for state labels: One at small sizes
-   * and another at large sizes.
-   */
   textFontSize: PropTypes.array,
-  /**
-   * A function that returns the font family for the given state label.
-   */
   textFontFamily: PropTypes.func,
-  /**
-   * A function that returns the font weight for the given state label.
-   */
   textFontWeight: PropTypes.func,
-  /**
-   * A function that returns a fill color for the state label.
-   */
   textFill: PropTypes.func,
-  /**
-   * A function that returns a stroke color for the state label.
-   */
   textStroke: PropTypes.func,
-  /**
-   * A function that returns a stroke width for the state label.
-   */
   textStrokeWidth: PropTypes.func,
-  /**
-   * A function that returns a color for a rectangle to appear behind the state
-   * label.
-   */
   textBackgroundFill: PropTypes.func,
-  /**
-   * A function that returns a width for a rectangle to appear behind the state
-   * label.
-   */
   textBackgroundWidth: PropTypes.func,
-  /**
-   * A function that returns a height for a rectangle to appear behind the state
-   * label.
-   */
   textBackgroundHeight: PropTypes.func,
-  /**
-   * A function that returns a value to nudge up or down a rectangle that
-   * appears behind the state label.
-   */
   textBackgroundDY: PropTypes.func,
-  /**
-   * A width in pixels for the tooltip. Only applies if `tooltipHTML` is
-   * defined.
-   */
   tooltipWidth: PropTypes.number,
-  /**
-   * A function that returns HTML to show in a tooltip. You will likely want to
-   * style this div with a white background and border.
-   */
   tooltipHTML: PropTypes.func,
-  /**
-   * A comparator function to control what order the states are drawn in.
-   * Useful when you want to control which strokes appear above others.
-   * @param a
-   * @param b
-   */
   sort: PropTypes.func,
-  /**
-   * Whether to exclude an offshore box for Washington, D.C.
-   */
   excludeDC: PropTypes.bool,
-  /**
-   * A function that is called when a state is clicked. It receives the state name as an argument.
-   */
-  onStateClick: PropTypes.func
+  onStateClick: PropTypes.func // Add the new prop type
 };
 USMap.defaultProps = {
   excludeDC: false,
@@ -51690,7 +51589,7 @@ USMap.defaultProps = {
   size: {
     width: 600
   },
-  onStateClick: nop
+  onStateClick: nop // Add the default prop for onStateClick
 };
 const WrappedUSMap = reactSizeme.withSize()(USMap);
 reactSizeme.withSize()(USMap);
