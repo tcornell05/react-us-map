@@ -51441,7 +51441,7 @@ const USMap = props => {
     top: 0,
     bottom: 0,
     left: 0,
-    right: isSkinny ? 34 : 0
+    right: isSkinny ? 0 : 0
   };
   const offshoreData = excludeDC ? offshore.filter(d => d.state !== 'District of Columbia') : offshore;
   React$1.useEffect(() => {
