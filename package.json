@@ -1,6 +1,6 @@
 {
   "name": "react-us-map",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "description": " React component for displaying responsive U.S. maps with tooltips, fills, strokes and more.",
   "main": "dist/react-us-map.cjs.js",
   "files": [
