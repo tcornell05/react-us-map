@@ -51441,12 +51441,12 @@ const USMap = props => {
     top: 0,
     bottom: 0,
     left: 0,
-    right: isSkinny ? 0 : 0
+    right: isSkinny ? 34 : 0
   };
   const offshoreData = excludeDC ? offshore.filter(d => d.state !== 'District of Columbia') : offshore;
   React$1.useEffect(() => {
     const el = d3Chart.current;
-    const width = size.width - margins.left - margins.right + 50;
+    const width = size.width - margins.left - margins.right;
     const height = width * 0.58;
     const offshoreBoxWidth = isSkinny ? 12 : 15;
     const fontSize = isSkinny ? textFontSize[0] : textFontSize[1];
