@@ -60,7 +60,7 @@ const USMap = props => {
     textBackgroundDY,
     tooltipWidth,
     tooltipHTML,
-    onStateClick, // Add the onStateClick prop here
+    onStateClick,
   } = props;
 
   const isSkinny = size.width <= 700;
@@ -96,54 +96,54 @@ const USMap = props => {
       .style('opacity', 0)
       .style('width', tooltipWidth + 'px');
 
-    const mouseover = (e, d) => {
+    const mouseover = (event, d) => {
       tooltip
         .style('visibility', 'visible')
         .style('opacity', 1);
 
-      tooltip.html(tooltipHTML(d));
+      tooltip.html(tooltipHTML(d.properties ? d.properties.name : d));
 
-      svg.selectAll(`.d3-state-${slugify(d)}`)
-        .style('fill', d => fillHover(d.properties.name))
-        .style('stroke', d => strokeHover(d.properties.name))
-        .style('stroke-width', d => strokeWidthHover(d.properties.name))
+      svg.selectAll(`.d3-state-${slugify(d.properties ? d.properties.name : d)}`)
+        .style('fill', d => fillHover(d.properties ? d.properties.name : d))
+        .style('stroke', d => strokeHover(d.properties ? d.properties.name : d))
+        .style('stroke-width', d => strokeWidthHover(d.properties ? d.properties.name : d))
         .raise();
 
-      svg.selectAll(`.d3-state-offshore-${slugify(d)}`)
-        .style('fill', d => fillHover(d.state))
-        .style('stroke', d => strokeHover(d.state))
-        .style('stroke-width', d => strokeWidthHover(d.state));
+      svg.selectAll(`.d3-state-offshore-${slugify(d.properties ? d.properties.name : d)}`)
+        .style('fill', d => fillHover(d.properties ? d.properties.name : d))
+        .style('stroke', d => strokeHover(d.properties ? d.properties.name : d))
+        .style('stroke-width', d => strokeWidthHover(d.properties ? d.properties.name : d));
     };
 
-    const mousemove = (e, d) => {
+    const mousemove = (event, d) => {
       tooltip
         .style('left',
-          e.pageX > width * 0.75
-            ? e.pageX - tooltipWidth + 'px'
-            : e.pageX + 10 + 'px'
+          event.pageX > width * 0.75
+            ? event.pageX - tooltipWidth + 'px'
+            : event.pageX + 10 + 'px'
         )
-        .style('top', e.pageY + 10 + 'px');
+        .style('top', event.pageY + 10 + 'px');
     };
 
-    const mouseout = (e, d) => {
+    const mouseout = (event, d) => {
       tooltip
         .style('opacity', 0)
         .style('visibility', 'hidden');
 
-      svg.selectAll(`.d3-state-${slugify(d)}`)
-        .style('fill', d => fill(d.properties.name))
-        .style('stroke', d => stroke(d.properties.name))
-        .style('stroke-width', d => strokeWidth(d.properties.name));
+      svg.selectAll(`.d3-state-${slugify(d.properties ? d.properties.name : d)}`)
+        .style('fill', d => fill(d.properties ? d.properties.name : d))
+        .style('stroke', d => stroke(d.properties ? d.properties.name : d))
+        .style('stroke-width', d => strokeWidth(d.properties ? d.properties.name : d));
 
-      svg.selectAll(`.d3-state-offshore-${slugify(d)}`)
-        .style('fill', d => fill(d.state))
-        .style('stroke', d => stroke(d.state))
-        .style('stroke-width', d => strokeWidth(d.state));
+      svg.selectAll(`.d3-state-offshore-${slugify(d.properties ? d.properties.name : d)}`)
+        .style('fill', d => fill(d.properties ? d.properties.name : d))
+        .style('stroke', d => stroke(d.properties ? d.properties.name : d))
+        .style('stroke-width', d => strokeWidth(d.properties ? d.properties.name : d));
     };
 
-    const handleStateClick = (e, d) => {
+    const handleStateClick = (event, d) => {
       if (onStateClick) {
-        onStateClick(d);
+        onStateClick(d.properties ? d.properties.name : d);
       }
     };
 
@@ -169,13 +169,13 @@ const USMap = props => {
       .attr('fill', d => fill(d.properties.name))
       .attr('stroke', d => stroke(d.properties.name))
       .attr('stroke-width', d => strokeWidth(d.properties.name))
-      .on('click', (e, d) => handleStateClick(e, d.properties.name)); // This should work
+      .on('click', handleStateClick);
 
     if (tooltipHTML !== nop) {
       states
-        .on('mouseover', (e, d) => mouseover(e, d.properties.name))
-        .on('mousemove', (e, d) => mousemove(e, d.properties.name))
-        .on('mouseout', (e, d) => mouseout(e, d.properties.name));
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseout', mouseout);
     }
 
     if (overstroke !== nop) {
@@ -276,13 +276,13 @@ const USMap = props => {
       .style('fill', d => fill(d.state))
       .style('stroke', d => stroke(d.state))
       .style('stroke-width', d => strokeWidth(d.state))
-      .on('click', (e, d) => handleStateClick(e, d.state)); // Add click handler for offshore states
+      .on('click', (event, d) => handleStateClick(event, d.state));
 
     if (tooltipHTML !== nop) {
       statesOffshoreRightRect
-        .on('mouseover', (e, d) => mouseover(e, d.state))
-        .on('mousemove', (e, d) => mousemove(e, d.state))
-        .on('mouseout', (e, d) => mouseout(e, d.state));
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseout', mouseout);
     }
 
     if (textBackgroundFill !== nop) {
@@ -322,13 +322,13 @@ const USMap = props => {
       .attr('fill', d => fill(d.state))
       .attr('stroke', d => stroke(d.state))
       .attr('stroke-width', d => strokeWidth(d.state))
-      .on('click', (e, d) => handleStateClick(e, d.state)); // Add click handler for offshore states
+      .on('click', (event, d) => handleStateClick(event, d.state));
 
     if (tooltipHTML !== nop) {
       statesOffshoreTopRect
-        .on('mouseover', (e, d) => mouseover(e, d.state))
-        .on('mousemove', (e, d) => mousemove(e, d.state))
-        .on('mouseout', (e, d) => mouseout(e, d.state));
+        .on('mouseover', mouseover)
+        .on('mousemove', mousemove)
+        .on('mouseout', mouseout);
     }
 
     statesOffshoreTop
@@ -344,7 +344,7 @@ const USMap = props => {
     margins.right, margins.top, margins.bottom, isSkinny, tooltipWidth,
     textFontSize, textFontFamily, textFontWeight, textFill, textStroke,
     offshoreData, tooltipHTML, fillHover, strokeHover, strokeWidthHover,
-    textStrokeWidth, textFilter, onStateClick // Add onStateClick to the dependency array
+    textStrokeWidth, textFilter, onStateClick
   ]);
 
   return (
@@ -382,7 +382,7 @@ USMap.propTypes = {
   tooltipHTML: PropTypes.func,
   sort: PropTypes.func,
   excludeDC: PropTypes.bool,
-  onStateClick: PropTypes.func, // Add the new prop type
+  onStateClick: PropTypes.func,
 };
 
 USMap.defaultProps = {
@@ -410,7 +410,7 @@ USMap.defaultProps = {
   tooltipWidth: 200,
   tooltipHTML: nop,
   size: { width: 600 },
-  onStateClick: nop, // Add the default prop for onStateClick
+  onStateClick: nop,
 };
 
 const WrappedUSMap = withSize()(USMap);

@@ -51433,7 +51433,7 @@ const USMap = props => {
     textBackgroundDY,
     tooltipWidth,
     tooltipHTML,
-    onStateClick // Add the onStateClick prop here
+    onStateClick
   } = props;
   const isSkinny = size.width <= 700;
   const d3Chart = React$1.useRef(null);
@@ -51454,23 +51454,23 @@ const USMap = props => {
     svg.html('');
     svg.attr('height', height + margins.top + margins.bottom).attr('width', width + margins.right + margins.left);
     const tooltip = selectOrAppend(select('body'), '.d3-map-tooltip', 'div').attr('class', 'd3-map-tooltip').style('position', 'absolute').style('opacity', 0).style('width', tooltipWidth + 'px');
-    const mouseover = (e, d) => {
+    const mouseover = (event, d) => {
       tooltip.style('visibility', 'visible').style('opacity', 1);
-      tooltip.html(tooltipHTML(d));
-      svg.selectAll(`.d3-state-${slugify(d)}`).style('fill', d => fillHover(d.properties.name)).style('stroke', d => strokeHover(d.properties.name)).style('stroke-width', d => strokeWidthHover(d.properties.name)).raise();
-      svg.selectAll(`.d3-state-offshore-${slugify(d)}`).style('fill', d => fillHover(d.state)).style('stroke', d => strokeHover(d.state)).style('stroke-width', d => strokeWidthHover(d.state));
+      tooltip.html(tooltipHTML(d.properties ? d.properties.name : d));
+      svg.selectAll(`.d3-state-${slugify(d.properties ? d.properties.name : d)}`).style('fill', d => fillHover(d.properties ? d.properties.name : d)).style('stroke', d => strokeHover(d.properties ? d.properties.name : d)).style('stroke-width', d => strokeWidthHover(d.properties ? d.properties.name : d)).raise();
+      svg.selectAll(`.d3-state-offshore-${slugify(d.properties ? d.properties.name : d)}`).style('fill', d => fillHover(d.properties ? d.properties.name : d)).style('stroke', d => strokeHover(d.properties ? d.properties.name : d)).style('stroke-width', d => strokeWidthHover(d.properties ? d.properties.name : d));
     };
-    const mousemove = (e, d) => {
-      tooltip.style('left', e.pageX > width * 0.75 ? e.pageX - tooltipWidth + 'px' : e.pageX + 10 + 'px').style('top', e.pageY + 10 + 'px');
+    const mousemove = (event, d) => {
+      tooltip.style('left', event.pageX > width * 0.75 ? event.pageX - tooltipWidth + 'px' : event.pageX + 10 + 'px').style('top', event.pageY + 10 + 'px');
     };
-    const mouseout = (e, d) => {
+    const mouseout = (event, d) => {
       tooltip.style('opacity', 0).style('visibility', 'hidden');
-      svg.selectAll(`.d3-state-${slugify(d)}`).style('fill', d => fill(d.properties.name)).style('stroke', d => stroke(d.properties.name)).style('stroke-width', d => strokeWidth(d.properties.name));
-      svg.selectAll(`.d3-state-offshore-${slugify(d)}`).style('fill', d => fill(d.state)).style('stroke', d => stroke(d.state)).style('stroke-width', d => strokeWidth(d.state));
+      svg.selectAll(`.d3-state-${slugify(d.properties ? d.properties.name : d)}`).style('fill', d => fill(d.properties ? d.properties.name : d)).style('stroke', d => stroke(d.properties ? d.properties.name : d)).style('stroke-width', d => strokeWidth(d.properties ? d.properties.name : d));
+      svg.selectAll(`.d3-state-offshore-${slugify(d.properties ? d.properties.name : d)}`).style('fill', d => fill(d.properties ? d.properties.name : d)).style('stroke', d => stroke(d.properties ? d.properties.name : d)).style('stroke-width', d => strokeWidth(d.properties ? d.properties.name : d));
     };
-    const handleStateClick = (e, d) => {
+    const handleStateClick = (event, d) => {
       if (onStateClick) {
-        onStateClick(d);
+        onStateClick(d.properties ? d.properties.name : d);
       }
     };
     const projection = geoAlbersUsa().fitSize([width, height], stateGeoData);
@@ -51478,10 +51478,9 @@ const USMap = props => {
     const g = svg.append('g').attr('class', 'map');
 
     // For main states
-    const states = g.append('g').attr('class', 'states').selectAll('.state').data(stateGeoData.features.sort((a, b) => sort(a.properties.name, b.properties.name))).enter().append('path').attr('d', path).attr('class', d => `state d3-state-${slugify(d.properties.name)}`).attr('fill', d => fill(d.properties.name)).attr('stroke', d => stroke(d.properties.name)).attr('stroke-width', d => strokeWidth(d.properties.name)).on('click', (e, d) => handleStateClick(e, d.properties.name)); // This should work
-
+    const states = g.append('g').attr('class', 'states').selectAll('.state').data(stateGeoData.features.sort((a, b) => sort(a.properties.name, b.properties.name))).enter().append('path').attr('d', path).attr('class', d => `state d3-state-${slugify(d.properties.name)}`).attr('fill', d => fill(d.properties.name)).attr('stroke', d => stroke(d.properties.name)).attr('stroke-width', d => strokeWidth(d.properties.name)).on('click', handleStateClick);
     if (tooltipHTML !== nop) {
-      states.on('mouseover', (e, d) => mouseover(e, d.properties.name)).on('mousemove', (e, d) => mousemove(e, d.properties.name)).on('mouseout', (e, d) => mouseout(e, d.properties.name));
+      states.on('mouseover', mouseover).on('mousemove', mousemove).on('mouseout', mouseout);
     }
     if (overstroke !== nop) {
       g.append('g').attr('class', 'states-overstrokes').selectAll('.state-overstroke').data(stateGeoData.features.sort(sort)).enter().append('path').attr('d', path).attr('class', d => `state-overstroke d3-state-${slugify(d.properties.name)}`).attr('fill', 'none').attr('stroke', d => overstroke(d.properties.name)).attr('stroke-width', d => overstrokeWidth(d.properties.name)).raise();
@@ -51512,24 +51511,21 @@ const USMap = props => {
     const offshoreRightData = isSkinny ? offshoreData : offshoreData.filter(d => d.region === 'right');
     const offshoreTopData = isSkinny ? [] : offshoreData.filter(d => d.region === 'top');
     const statesOffshoreRight = statesOffshore.selectAll('.state-offshore-right').data(offshoreRightData).enter().append('g').attr('class', 'state-offshore state-offshore-right').attr('transform', (d, i) => `translate(${isSkinny ? width : width - 60}, ${(isSkinny ? 15 : height * 0.35) + i * (offshoreBoxWidth + 5)})`);
-    const statesOffshoreRightRect = statesOffshoreRight.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).style('fill', d => fill(d.state)).style('stroke', d => stroke(d.state)).style('stroke-width', d => strokeWidth(d.state)).on('click', (e, d) => handleStateClick(e, d.state)); // Add click handler for offshore states
-
+    const statesOffshoreRightRect = statesOffshoreRight.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).style('fill', d => fill(d.state)).style('stroke', d => stroke(d.state)).style('stroke-width', d => strokeWidth(d.state)).on('click', (event, d) => handleStateClick(event, d.state));
     if (tooltipHTML !== nop) {
-      statesOffshoreRightRect.on('mouseover', (e, d) => mouseover(e, d.state)).on('mousemove', (e, d) => mousemove(e, d.state)).on('mouseout', (e, d) => mouseout(e, d.state));
+      statesOffshoreRightRect.on('mouseover', mouseover).on('mousemove', mousemove).on('mouseout', mouseout);
     }
     if (textBackgroundFill !== nop) {
       statesOffshoreRight.append('rect').attr('x', offshoreBoxWidth + 2).attr('y', d => offshoreBoxWidth - 2 - textBackgroundHeight(d.state) / 2 + textBackgroundDY(d.state)).attr('width', d => textBackgroundWidth(d.state)).attr('height', d => textBackgroundHeight(d.state)).style('fill', d => textBackgroundFill(d.state));
     }
     statesOffshoreRight.append('text').attr('x', offshoreBoxWidth + 4).attr('y', offshoreBoxWidth - 2).style('font-size', fontSize).style('font-family', d => textFontFamily(d.state)).style('font-weight', d => textFontWeight(d.state)).text(d => fullToPostal(d.state));
     const statesOffshoreTop = statesOffshore.selectAll('.state-offshore-top').data(offshoreTopData).enter().append('g').attr('class', 'state-offshore state-offshore-top').attr('transform', (d, i) => `translate(${width * 0.85}, ${height * 0.07 + i * (offshoreBoxWidth + 5)})`);
-    const statesOffshoreTopRect = statesOffshoreTop.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).attr('fill', d => fill(d.state)).attr('stroke', d => stroke(d.state)).attr('stroke-width', d => strokeWidth(d.state)).on('click', (e, d) => handleStateClick(e, d.state)); // Add click handler for offshore states
-
+    const statesOffshoreTopRect = statesOffshoreTop.append('rect').attr('class', d => `d3-state-offshore-${slugify(d.state)}`).attr('x', 0).attr('width', offshoreBoxWidth).attr('y', 0).attr('height', offshoreBoxWidth).attr('fill', d => fill(d.state)).attr('stroke', d => stroke(d.state)).attr('stroke-width', d => strokeWidth(d.state)).on('click', (event, d) => handleStateClick(event, d.state));
     if (tooltipHTML !== nop) {
-      statesOffshoreTopRect.on('mouseover', (e, d) => mouseover(e, d.state)).on('mousemove', (e, d) => mousemove(e, d.state)).on('mouseout', (e, d) => mouseout(e, d.state));
+      statesOffshoreTopRect.on('mouseover', mouseover).on('mousemove', mousemove).on('mouseout', mouseout);
     }
     statesOffshoreTop.append('text').attr('x', offshoreBoxWidth + 4).attr('y', offshoreBoxWidth - 2).style('font-size', fontSize).style('font-family', d => textFontFamily(d.state)).style('font-weight', d => textFontWeight(d.state)).text(d => fullToPostal(d.state));
-  }, [d3Chart, size.width, sort, fill, stroke, strokeWidth, margins.left, margins.right, margins.top, margins.bottom, isSkinny, tooltipWidth, textFontSize, textFontFamily, textFontWeight, textFill, textStroke, offshoreData, tooltipHTML, fillHover, strokeHover, strokeWidthHover, textStrokeWidth, textFilter, onStateClick // Add onStateClick to the dependency array
-  ]);
+  }, [d3Chart, size.width, sort, fill, stroke, strokeWidth, margins.left, margins.right, margins.top, margins.bottom, isSkinny, tooltipWidth, textFontSize, textFontFamily, textFontWeight, textFill, textStroke, offshoreData, tooltipHTML, fillHover, strokeHover, strokeWidthHover, textStrokeWidth, textFilter, onStateClick]);
   return /*#__PURE__*/React__default$1["default"].createElement("div", null, /*#__PURE__*/React__default$1["default"].createElement("svg", {
     ref: d3Chart,
     width: '100%',
@@ -51560,7 +51556,7 @@ USMap.propTypes = {
   tooltipHTML: PropTypes.func,
   sort: PropTypes.func,
   excludeDC: PropTypes.bool,
-  onStateClick: PropTypes.func // Add the new prop type
+  onStateClick: PropTypes.func
 };
 USMap.defaultProps = {
   excludeDC: false,
@@ -51589,7 +51585,7 @@ USMap.defaultProps = {
   size: {
     width: 600
   },
-  onStateClick: nop // Add the default prop for onStateClick
+  onStateClick: nop
 };
 const WrappedUSMap = reactSizeme.withSize()(USMap);
 reactSizeme.withSize()(USMap);
